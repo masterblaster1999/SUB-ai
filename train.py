@@ -2,9 +2,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for GitHub Actions
 import matplotlib.pyplot as plt
 import os
 from datetime import datetime
+import sys
 
 class SUBaiTrainer:
     """
@@ -233,22 +236,22 @@ class SUBaiTrainer:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
         
         # Plot accuracy
-        ax1.plot(self.history.history['accuracy'], label='Training Accuracy')
-        ax1.plot(self.history.history['val_accuracy'], label='Validation Accuracy')
-        ax1.set_title('Model Accuracy')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Accuracy')
-        ax1.legend()
-        ax1.grid(True)
+        ax1.plot(self.history.history['accuracy'], label='Training Accuracy', linewidth=2)
+        ax1.plot(self.history.history['val_accuracy'], label='Validation Accuracy', linewidth=2)
+        ax1.set_title('Model Accuracy', fontsize=14, fontweight='bold')
+        ax1.set_xlabel('Epoch', fontsize=12)
+        ax1.set_ylabel('Accuracy', fontsize=12)
+        ax1.legend(fontsize=10)
+        ax1.grid(True, alpha=0.3)
         
         # Plot loss
-        ax2.plot(self.history.history['loss'], label='Training Loss')
-        ax2.plot(self.history.history['val_loss'], label='Validation Loss')
-        ax2.set_title('Model Loss')
-        ax2.set_xlabel('Epoch')
-        ax2.set_ylabel('Loss')
-        ax2.legend()
-        ax2.grid(True)
+        ax2.plot(self.history.history['loss'], label='Training Loss', linewidth=2)
+        ax2.plot(self.history.history['val_loss'], label='Validation Loss', linewidth=2)
+        ax2.set_title('Model Loss', fontsize=14, fontweight='bold')
+        ax2.set_xlabel('Epoch', fontsize=12)
+        ax2.set_ylabel('Loss', fontsize=12)
+        ax2.legend(fontsize=10)
+        ax2.grid(True, alpha=0.3)
         
         plt.tight_layout()
         
@@ -257,7 +260,7 @@ class SUBaiTrainer:
             plt.savefig(plot_path, dpi=300, bbox_inches='tight')
             print(f"Training history plot saved to: {plot_path}")
         
-        plt.show()
+        plt.close()
     
     def test_prediction(self, num_samples=5):
         """
@@ -274,6 +277,7 @@ class SUBaiTrainer:
         # Get random indices
         indices = np.random.choice(len(self.x_test), num_samples, replace=False)
         
+        correct = 0
         for idx in indices:
             img = self.x_test[idx:idx+1]
             true_label = np.argmax(self.y_test[idx])
@@ -283,11 +287,17 @@ class SUBaiTrainer:
             predicted_label = np.argmax(prediction)
             confidence = np.max(prediction) * 100
             
+            is_correct = true_label == predicted_label
+            if is_correct:
+                correct += 1
+            
             print(f"Sample {idx}:")
             print(f"  True Label: {true_label}")
             print(f"  Predicted: {predicted_label}")
             print(f"  Confidence: {confidence:.2f}%")
-            print(f"  Status: {'✓ Correct' if true_label == predicted_label else '✗ Wrong'}\n")
+            print(f"  Status: {'✓ Correct' if is_correct else '✗ Wrong'}\n")
+        
+        print(f"Accuracy on samples: {correct}/{num_samples} ({correct/num_samples*100:.1f}%)\n")
 
 
 def main():
@@ -299,35 +309,54 @@ def main():
     print("="*60)
     print()
     
+    # Get parameters from environment or use defaults
+    epochs = int(os.environ.get('EPOCHS', '15'))
+    batch_size = int(os.environ.get('BATCH_SIZE', '128'))
+    
+    print(f"Training Configuration:")
+    print(f"  Epochs: {epochs}")
+    print(f"  Batch Size: {batch_size}")
+    print()
+    
     # Initialize trainer
     trainer = SUBaiTrainer(model_name="sub_ai_model")
     
-    # Load data
-    trainer.load_data()
-    
-    # Build model (CNN for better accuracy)
-    trainer.build_model(model_type="cnn")
-    
-    # Train the model
-    trainer.train(epochs=15, batch_size=128, validation_split=0.1)
-    
-    # Evaluate
-    results = trainer.evaluate()
-    
-    # Test predictions
-    trainer.test_prediction(num_samples=10)
-    
-    # Save model
-    model_path = trainer.save_model()
-    
-    # Plot training history
-    trainer.plot_training_history(save_plot=True)
-    
-    print("="*60)
-    print("Training completed successfully!")
-    print(f"Final Test Accuracy: {results['test_accuracy']*100:.2f}%")
-    print(f"Model saved to: {model_path}")
-    print("="*60)
+    try:
+        # Load data
+        trainer.load_data()
+        
+        # Build model (CNN for better accuracy)
+        trainer.build_model(model_type="cnn")
+        
+        # Train the model
+        trainer.train(epochs=epochs, batch_size=batch_size, validation_split=0.1)
+        
+        # Evaluate
+        results = trainer.evaluate()
+        
+        # Test predictions
+        trainer.test_prediction(num_samples=10)
+        
+        # Save model
+        model_path = trainer.save_model()
+        
+        # Plot training history
+        trainer.plot_training_history(save_plot=True)
+        
+        print("="*60)
+        print("Training completed successfully!")
+        print(f"Final Test Accuracy: {results['test_accuracy']*100:.2f}%")
+        print(f"Model saved to: {model_path}")
+        print("="*60)
+        
+        # Exit with success
+        sys.exit(0)
+        
+    except Exception as e:
+        print(f"\n❌ Error during training: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
