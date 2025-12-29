@@ -4,6 +4,35 @@
 
 SUB ai can be trained on multiple datasets from Hugging Face for high-quality conversational capabilities. This guide explains the available datasets and how to use them.
 
+This repo also supports **number/digit datasets** for the vision module.
+
+---
+
+## Number Detection Datasets
+
+### MNIST (Single Digit)
+
+The base vision model is trained on the classic MNIST handwritten digit dataset via `train.py`.
+
+### Synthetic Multi-Digit Dataset (Generated)
+
+SUB ai now supports multi-digit recognition via contour segmentation + per-digit classification.
+To help evaluate and future-proof this feature, you can generate a **synthetic multi-digit dataset**
+by composing MNIST digits side-by-side.
+
+Generate the dataset:
+
+```bash
+python generate_multidigit_dataset.py --output data/multidigit --samples 5000 --min-digits 2 --max-digits 5
+```
+
+Output:
+
+- `data/multidigit/*.png` generated images
+- `data/multidigit/labels.csv` with filename + label
+
+> Note: `data/` is gitignored by default, so generated images won't be committed accidentally.
+
 ## Available Datasets
 
 ### 1. DailyDialog (Default) 🌟

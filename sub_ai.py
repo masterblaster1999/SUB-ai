@@ -102,8 +102,18 @@ class SUBai:
                     if os.path.exists(image_path):
                         result = self.detect_number(image_path)
                         print(f"\nSUB ai: {result['message']}")
+                        # Single digit (legacy)
                         if result.get('predicted_digit') is not None:
                             print(f"  Digit: {result['predicted_digit']}")
+
+                        # Multi-digit support
+                        if result.get('predicted_number') is not None and result.get('predicted_digit') is None:
+                            print(f"  Number: {result['predicted_number']}")
+
+                        # Optional per-digit confidences
+                        if result.get('digit_confidences'):
+                            confs = ", ".join(f"{c:.2%}" for c in result['digit_confidences'])
+                            print(f"  Per-digit confidence: [{confs}]")
                         print(f"  Confidence: {result['confidence']:.2%}\n")
                     else:
                         print(f"\nSUB ai: Sorry, I can't find the image at '{image_path}'\n")

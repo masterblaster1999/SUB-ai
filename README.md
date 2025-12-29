@@ -1,17 +1,9 @@
 # SUB ai - Small Language Model
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![TensorFlow 2.13+](https://img.shields.io/badge/TensorFlow-2.13+-orange.svg)](https://www.tensorflow.org/)
-[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![GitHub Release](https://img.shields.io/github/v/release/subhobhai943/SUB-ai)](https://github.com/subhobhai943/SUB-ai/releases)
-
 ## Overview
 SUB ai is a comprehensive small language model with dual capabilities:
 1. **Number Detection**: Detect and recognize digits (0-9) from images
-2. **Conversational AI**: Natural text-based conversations using real datasets from Hugging Face
-
-**Models are distributed via [GitHub Releases](https://github.com/subhobhai943/SUB-ai/releases)** - keeping the repository lightweight!
+2. **Conversational AI**: Natural text-based conversations like ChatGPT
 
 ## 🌟 Features
 
@@ -20,118 +12,83 @@ SUB ai is a comprehensive small language model with dual capabilities:
 - ✅ Classify images as "number" or "not a number"
 - ✅ CNN-based neural network for high accuracy
 - ✅ Trained on MNIST dataset (98-99% accuracy)
+- ✅ **Multi-digit number recognition** (segments digits and reads left → right)
 
 ### Chat AI Module
-- ✅ Text-based conversations trained on 5,000+ real dialogues
-- ✅ Multiple Hugging Face datasets (DailyDialog, Empathetic Dialogues)
+- ✅ Text-based conversations
 - ✅ Natural language understanding
 - ✅ Sequence-to-sequence neural architecture
 - ✅ Rule-based fallback for reliability
 - ✅ Interactive chat interface
 
-## 🚀 Quick Start
-
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/subhobhai943/SUB-ai.git
-cd SUB-ai
+## 📦 Project Structure
+```
+SUB-ai/
+├── README.md
+├── requirements.txt
+├── sub_ai.py              # Unified AI interface
+├── number_detector.py    # Number detection module
+├── chat_ai.py            # Chat AI module
+├── train.py              # Number detection training
+├── train_chat.py         # Chat model training
+├── test_detector.py      # Testing script
+├── .github/workflows/    # GitHub Actions
+├── models/               # Saved models
+└── data/                 # Training data
 ```
 
-### 2. Install Dependencies
+## 🚀 Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/subhobhai943/SUB-ai.git
+cd SUB-ai
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Download Pre-trained Models
+## 🎯 Training the Models
 
-**Option A: Automatic Download (Recommended)**
+### Option 1: GitHub Actions (Recommended)
 
-```bash
-# Download all models from latest releases
-python download_models.py
-
-# Or download specific model
-python download_models.py number  # Number detection only
-python download_models.py chat    # Chat model only
-```
-
-**Option B: Manual Download**
-
-1. Go to [Releases](https://github.com/subhobhai943/SUB-ai/releases)
-2. Download latest models:
-   - Number Detection: `sub_ai_model_latest.h5`
-   - Chat Model: `sub_ai_chat_latest.h5` + `chat_vocab.pkl`
-3. Place in `models/` directory
-
-**Option C: Train Your Own**
-
-```bash
-python train.py        # Number detection
-python train_chat.py   # Chat model
-```
-
-### 4. Run SUB ai
-
-```bash
-python sub_ai.py
-```
-
-## 🎯 Training Models
-
-### GitHub Actions Training (Recommended)
-
-Train on GitHub's cloud infrastructure and get models via releases!
+Train on GitHub's servers - no local setup required!
 
 #### Train Number Detection Model
-
 1. Go to [Actions tab](https://github.com/subhobhai943/SUB-ai/actions)
 2. Select "Train SUB ai Model"
 3. Click "Run workflow"
-4. Configure options (epochs, batch size)
-5. Wait ~5-8 minutes
-6. **Model released automatically!** 🎉
-7. Download: `python download_models.py number`
+4. Wait ~5-8 minutes
+5. Model automatically commits to repository
 
 #### Train Chat Model
-
 1. Go to [Actions tab](https://github.com/subhobhai943/SUB-ai/actions)
 2. Select "Train SUB ai Chat Model"
 3. Click "Run workflow"
-4. Choose dataset: `daily_dialog` (recommended) or `empathetic_dialogues`
-5. Set max samples: `5000` (more = better)
-6. Wait ~8-12 minutes
-7. **Model released automatically!** 🎉
-8. Download: `python download_models.py chat`
+4. Wait ~3-5 minutes
+5. Model automatically commits to repository
 
-**See [WORKFLOWS.md](WORKFLOWS.md) for detailed instructions.**
-
-### Local Training
+### Option 2: Local Training
 
 ```bash
-# Train number detection
+# Train number detection model
 python train.py
 
-# Train chat model with Hugging Face dataset
-python train_chat.py
-
-# Train chat with specific dataset
-export HF_DATASET=empathetic_dialogues
-export MAX_SAMPLES=10000
+# Train chat model
 python train_chat.py
 ```
 
-**See [DATASETS.md](DATASETS.md) for dataset options.**
+## 💬 Usage
 
-## 💬 Usage Examples
+### Unified Interface (Recommended)
 
-### Unified Interface
+Run SUB ai with both capabilities:
 
 ```bash
 python sub_ai.py
 ```
 
+Example session:
 ```
 You: Hello!
 SUB ai: Hello! How can I help you today?
@@ -144,6 +101,12 @@ SUB ai: This is a number image! Detected: 5
   Digit: 5
   Confidence: 99.87%
 
+You: detect test_images/number_123.png
+SUB ai: This is a number image! Detected: 123
+  Number: 123
+  Per-digit confidence: [99.12%, 98.45%, 97.83%]
+  Confidence: 97.83%
+
 You: Thanks!
 SUB ai: You're welcome! Happy to help!
 ```
@@ -152,6 +115,18 @@ SUB ai: You're welcome! Happy to help!
 
 ```bash
 python chat_ai.py
+```
+
+### Number Detection Only
+
+```python
+from number_detector import NumberDetector
+
+detector = NumberDetector(model_path='models/sub_ai_model_latest.h5')
+result = detector.detect('path/to/image.jpg')
+
+print(result['message'])
+print(f"Confidence: {result['confidence']:.2%}")
 ```
 
 ### Python API
@@ -170,50 +145,6 @@ print(response['response'])
 result = ai.detect_number('image.png')
 print(result['message'])
 ```
-
-### Number Detection API
-
-```python
-from number_detector import NumberDetector
-
-detector = NumberDetector(model_path='models/sub_ai_model_latest.h5')
-result = detector.detect('path/to/image.jpg')
-
-print(result['message'])
-print(f"Confidence: {result['confidence']:.2%}")
-if result.get('predicted_digit') is not None:
-    print(f"Detected Digit: {result['predicted_digit']}")
-```
-
-## 📦 Model Distribution
-
-### Why GitHub Releases?
-
-✅ **Lightweight Repository** - No large binary files in git  
-✅ **Version Control** - Each training run creates a versioned release  
-✅ **Easy Downloads** - Direct download links for models  
-✅ **Automatic Updates** - New releases created after each training  
-✅ **Artifact Storage** - Models also stored as GitHub Actions artifacts (90 days)
-
-### Accessing Models
-
-**Latest Models**: [View Releases](https://github.com/subhobhai943/SUB-ai/releases)
-
-**Download Script**:
-```bash
-# All models
-python download_models.py
-
-# Specific model
-python download_models.py number
-python download_models.py chat
-```
-
-**Manual Download**:
-1. Visit [Releases page](https://github.com/subhobhai943/SUB-ai/releases)
-2. Find latest release for your model type
-3. Download model files
-4. Place in `models/` directory
 
 ## 🧠 Model Architectures
 
@@ -238,7 +169,7 @@ Bi-LSTM (256 units) → Dropout (0.3)
            ↓
 Bi-LSTM (128 units) → Dropout (0.3)
            ↓
-  Dense (256, ReLU) → Dropout (0.2)
+  Dense (256, ReLU)
            ↓
 Dense (vocab_size, softmax) → Response
 ```
@@ -250,168 +181,139 @@ Dense (vocab_size, softmax) → Response
 | Number Detection | Test Accuracy | 98-99% |
 | Number Detection | Training Time | 5-8 min |
 | Number Detection | Model Size | ~1.5 MB |
-| Chat AI (Local Data) | Training Time | 3-5 min |
-| Chat AI (HF Dataset) | Training Time | 8-12 min |
+| Chat AI | Training Time | 3-5 min |
 | Chat AI | Model Size | ~2 MB |
 | Chat AI | Response Time | <50ms |
-| Chat AI | Training Samples | 5,000+ |
 
 ## 🛣️ Roadmap
 
 ### Stage 1 ✅ (Completed)
 - [x] Number detection from images
 - [x] CNN model training on MNIST
-- [x] GitHub Actions workflows
+- [x] GitHub Actions workflow
 - [x] 98%+ accuracy
 
-### Stage 2 ✅ (Completed)
+### Stage 2 🚧 (In Progress)
 - [x] Conversational AI chat
-- [x] Hugging Face dataset integration
-- [x] 5,000+ training samples
-- [x] Multiple dataset options
-- [x] GitHub Releases for model distribution
-
-### Stage 3 (In Progress)
-- [ ] Improve chat response quality
+- [x] Text response generation
+- [ ] Improve chat training data
 - [ ] Add context memory
-- [ ] Multi-turn conversation support
-- [ ] Web interface (Flask/Gradio)
+
+### Stage 3 (Next)
+- [x] Multi-digit number recognition
+- [ ] Combine vision + language (VQA)
+- [ ] Real-world image support
+- [ ] Web interface
 
 ### Stage 4 (Future)
-- [ ] Multi-digit number recognition
 - [ ] Voice input/output
 - [ ] Multi-language support
 - [ ] Mobile app
-- [ ] REST API
+- [ ] API endpoints
 
-## 📚 Documentation
+## 📚 Example Conversations
 
-- **[README.md](README.md)** - Project overview (this file)
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
-- **[DATASETS.md](DATASETS.md)** - Dataset guide
-- **[WORKFLOWS.md](WORKFLOWS.md)** - GitHub Actions guide
-- **[LICENSE](LICENSE)** - MIT License
+### General Chat
+```
+You: Hi there!
+SUB ai: Hi there! I'm SUB ai, your AI assistant.
 
-## 🤖 Available Datasets
+You: What is AI?
+SUB ai: AI stands for Artificial Intelligence - computer systems that can learn and reason.
+```
 
-### For Chat Training
+### About Capabilities
+```
+You: What can you do?
+SUB ai: I can detect numbers from images and chat with you!
 
-1. **DailyDialog** (Default) 🌟
-   - 13,000+ natural daily conversations
-   - Best for general-purpose chat
+You: Tell me about yourself
+SUB ai: I'm SUB ai, created to assist with number detection and conversations.
+```
 
-2. **Empathetic Dialogues**
-   - 25,000+ emotion-aware conversations
-   - Great for empathetic AI
+### Number Detection
+```
+You: detect test_images/number_7.png
+SUB ai: This is a number image! Detected: 7
+  Digit: 7
+  Confidence: 99.23%
+```
 
-3. **Local Dataset** (Fallback)
-   - 130+ built-in conversation pairs
-   - No internet required
+## 👥 Commands
 
-**See [DATASETS.md](DATASETS.md) for detailed information.**
+When using `sub_ai.py`:
+
+- **Chat**: Just type normally
+- **Detect**: `detect <image_path>`
+- **Help**: `help`
+- **Exit**: `quit` or `exit`
+
+## 🤖 GitHub Actions
+
+Automated workflows available:
+
+1. **Train SUB ai Model** - Trains number detection
+2. **Train SUB ai Chat Model** - Trains conversation AI
+3. **Test SUB ai Model** - Runs tests on changes
+
+See [WORKFLOWS.md](WORKFLOWS.md) for detailed guide.
 
 ## 🛠️ Technologies
 
 - **Python 3.8+**
 - **TensorFlow/Keras** - Deep learning framework
-- **Hugging Face Datasets** - Real conversation data
 - **OpenCV** - Image processing
 - **NumPy** - Numerical operations
-- **LSTM/Bi-LSTM** - Sequence modeling
+- **LSTM/GRU** - Sequence modeling
 - **Matplotlib** - Visualization
 
 ## 🐛 Troubleshooting
 
 ### Models Not Found
-
 ```bash
-# Download from releases
-python download_models.py
-
-# Or train locally
-python train.py          # Number detection
-python train_chat.py     # Chat AI
-```
-
-### Download Errors
-
-```bash
-# Check releases page
-# https://github.com/subhobhai943/SUB-ai/releases
-
-# Or train models locally instead
+# Train both models
 python train.py
 python train_chat.py
 ```
 
 ### Import Errors
-
 ```bash
 # Reinstall dependencies
 pip install -r requirements.txt --upgrade
 ```
 
-### Dataset Download Issues
-
-```bash
-# Use local fallback data
-export USE_HF_DATASET=false
-python train_chat.py
-```
+### Low Accuracy
+- Increase training epochs
+- Use more training data
+- Adjust model architecture
 
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Quick Contribution Guide
-
-1. Fork the repository
-2. Create a branch (`git checkout -b feature/amazing-feature`)
-3. Make changes and commit
-4. Push and open a Pull Request
-
-### Priority Areas
-
-- [ ] Add unit tests
-- [ ] Create web interface
-- [ ] Improve chat quality
-- [ ] Add more datasets
+Contributions welcome! Areas for improvement:
+- [ ] Larger conversation datasets
+- [ ] Better chat responses
 - [ ] Multi-language support
-- [ ] Context memory
+- [ ] Voice interface
+- [ ] Web UI
 
 ## 📝 License
 
-MIT License - see [LICENSE](LICENSE) file.
-
-✅ Commercial use | ✅ Modification | ✅ Distribution | ✅ Private use
+MIT License
 
 ## ✍️ Author
 
 **Subhobhai** - [@subhobhai943](https://github.com/subhobhai943)
 - Portfolio: [subhadip-portofolio.netlify.app](https://subhadip-portofolio.netlify.app)
-- Email: sarkarsubhadip604@gmail.com
+- Building AI projects and experimenting with ML
 
 ## 🙏 Acknowledgments
 
-- **MNIST Dataset** - Yann LeCun and Corinna Cortes
-- **DailyDialog Dataset** - Li et al.
-- **Empathetic Dialogues** - Facebook AI Research  
-- **TensorFlow Team** - Deep learning framework
-- **Hugging Face** - Datasets library and platform
-- **Open Source Community** - Inspiration and support
-
-## ⭐ Support
-
-Give a ⭐ if this project helped you!
-
-## 💬 Community
-
-- **Issues**: [Report bugs or request features](https://github.com/subhobhai943/SUB-ai/issues)
-- **Discussions**: [Ask questions](https://github.com/subhobhai943/SUB-ai/discussions)
-- **Releases**: [Download models](https://github.com/subhobhai943/SUB-ai/releases)
+- MNIST dataset by Yann LeCun
+- TensorFlow team
+- Open source AI community
 
 ---
 
-**Status**: Stage 2 Complete ✅ | Models via Releases 📦 | Ready to Use 🚀
+**Status**: Stage 2 In Progress 🚧 | Chat AI Added ✅ | Ready for Conversations 💬
 
-**Get Started**: `python download_models.py && python sub_ai.py` 💬
+**Try it now**: `python sub_ai.py` 🚀
