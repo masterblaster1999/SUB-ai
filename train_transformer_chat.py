@@ -66,7 +66,7 @@ class TransformerChatTrainer:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         
         self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        print(f"✓ Loaded {model_name}")
+        print(f"\u2713 Loaded {model_name}")
         print(f"  Parameters: {self.model.num_parameters():,}")
         print()
     
@@ -81,35 +81,48 @@ class TransformerChatTrainer:
         print(f"Loading dataset: {dataset_name}...")
         
         if dataset_name == "daily_dialog":
-            # Load DailyDialog dataset
-            dataset = load_dataset("daily_dialog", split="train")
-            
-            # Convert to chat format
-            conversations = []
-            for example in dataset:
-                dialog = example['dialog']
-                # Create conversation pairs
-                for i in range(len(dialog) - 1):
-                    conversations.append({
-                        'text': f"User: {dialog[i]}\nAssistant: {dialog[i+1]}"
-                    })
-            
-            # Limit samples
-            if max_samples and len(conversations) > max_samples:
-                conversations = conversations[:max_samples]
-            
-            dataset = Dataset.from_list(conversations)
+            try:
+                # Try loading with trust_remote_code
+                print("Attempting to load daily_dialog dataset...")
+                dataset = load_dataset("li2017dailydialog/daily_dialog", split="train", trust_remote_code=True)
+                
+                # Convert to chat format
+                conversations = []
+                for example in dataset:
+                    dialog = example['dialog']
+                    # Create conversation pairs
+                    for i in range(len(dialog) - 1):
+                        conversations.append({
+                            'text': f"User: {dialog[i]}\nAssistant: {dialog[i+1]}"
+                        })
+                
+                # Limit samples
+                if max_samples and len(conversations) > max_samples:
+                    conversations = conversations[:max_samples]
+                
+                dataset = Dataset.from_list(conversations)
+                print(f"\u2713 Loaded {len(dataset)} conversation pairs from daily_dialog")
+                
+            except Exception as e:
+                print(f"Failed to load daily_dialog: {e}")
+                print("Falling back to built-in conversation data...")
+                conversations = self._get_builtin_conversations()
+                if max_samples:
+                    conversations = conversations[:max_samples]
+                dataset = Dataset.from_list(conversations)
+                print(f"\u2713 Loaded {len(dataset)} built-in conversation pairs")
         
         elif dataset_name == "local":
-            # TODO: Load local chat data
-            print("Local dataset not implemented yet. Use 'daily_dialog'.")
-            exit(1)
+            print("Using built-in conversation data...")
+            conversations = self._get_builtin_conversations()
+            if max_samples:
+                conversations = conversations[:max_samples]
+            dataset = Dataset.from_list(conversations)
+            print(f"\u2713 Loaded {len(dataset)} built-in conversation pairs")
         
         else:
             print(f"Unknown dataset: {dataset_name}")
             exit(1)
-        
-        print(f"✓ Loaded {len(dataset)} conversation pairs")
         
         # Tokenize
         print("Tokenizing dataset...")
@@ -128,10 +141,34 @@ class TransformerChatTrainer:
             remove_columns=dataset.column_names
         )
         
-        print("✓ Dataset tokenized")
+        print("\u2713 Dataset tokenized")
         print()
         
         return tokenized_dataset
+    
+    def _get_builtin_conversations(self):
+        """
+        Get built-in conversation data as fallback.
+        """
+        base_conversations = [
+            {'text': 'User: Hello!\nAssistant: Hi there! How can I help you today?'},
+            {'text': 'User: What is AI?\nAssistant: AI stands for Artificial Intelligence. It refers to computer systems that can perform tasks that typically require human intelligence.'},
+            {'text': 'User: How are you?\nAssistant: I\'m doing well, thank you for asking! How are you doing today?'},
+            {'text': 'User: What can you do?\nAssistant: I can chat with you, answer questions, and help with various tasks. What would you like to know?'},
+            {'text': 'User: Tell me a joke\nAssistant: Why did the programmer quit his job? Because he didn\'t get arrays! Would you like to hear another one?'},
+            {'text': 'User: What is Python?\nAssistant: Python is a high-level, interpreted programming language known for its simplicity and versatility.'},
+            {'text': 'User: Good morning\nAssistant: Good morning! I hope you have a wonderful day ahead. How can I assist you?'},
+            {'text': 'User: Thank you\nAssistant: You\'re very welcome! Feel free to ask if you need anything else.'},
+            {'text': 'User: Goodbye\nAssistant: Goodbye! Have a great day and come back anytime you need help!'},
+            {'text': 'User: What is machine learning?\nAssistant: Machine learning is a subset of AI that enables systems to learn and improve from experience without being explicitly programmed.'},
+            {'text': 'User: Tell me about yourself\nAssistant: I\'m SUB ai, an AI assistant designed to help with conversations and answer questions. I\'m here to assist you!'},
+            {'text': 'User: What is deep learning?\nAssistant: Deep learning is a type of machine learning that uses neural networks with multiple layers to learn complex patterns.'},
+            {'text': 'User: Can you help me?\nAssistant: Of course! I\'d be happy to help. What do you need assistance with?'},
+            {'text': 'User: What time is it?\nAssistant: I don\'t have access to real-time information, but you can check your device\'s clock for the current time.'},
+            {'text': 'User: How do I learn programming?\nAssistant: Start with the basics, practice regularly, work on projects, and don\'t be afraid to make mistakes. Python is a great language for beginners!'},
+        ]
+        # Repeat to get enough samples
+        return base_conversations * 350  # This gives ~5250 samples
     
     def train(self, dataset, epochs=3, batch_size=8, learning_rate=5e-5):
         """
@@ -180,7 +217,7 @@ class TransformerChatTrainer:
         # Train
         print("Training...")
         trainer.train()
-        print("\n✓ Training complete!")
+        print("\n\u2713 Training complete!")
         print()
         
         return trainer
@@ -207,7 +244,7 @@ class TransformerChatTrainer:
         with open(os.path.join(self.output_dir, 'metadata.json'), 'w') as f:
             json.dump(metadata, f, indent=2)
         
-        print(f"✓ Model saved to {self.output_dir}")
+        print(f"\u2713 Model saved to {self.output_dir}")
         print()
         print("Next steps:")
         print("1. Test the model: python chat_transformer.py")
@@ -258,7 +295,7 @@ def main():
     trainer.save_model()
     
     print("="*60)
-    print("Training complete! 🎉")
+    print("Training complete! \U0001f389")
     print("="*60)
 
 
