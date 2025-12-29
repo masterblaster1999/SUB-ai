@@ -81,6 +81,16 @@ jobs:
           models/chat_vocab.pkl
         retention-days: 90
     
+    - name: Prepare release files
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      run: |
+        mkdir -p release_files
+        cp models/sub_ai_chat_latest.h5 release_files/ || echo "Latest model not found"
+        cp models/chat_vocab.pkl release_files/ || echo "Vocab not found"
+        ls -lh release_files/
+        echo "Files prepared for release:"
+        ls -la release_files/
+    
     - name: Create Release
       if: ${{ github.event.inputs.create_release == 'true' }}
       uses: softprops/action-gh-release@v1
@@ -108,12 +118,19 @@ jobs:
           
           ### How to Use
           
+          **Option 1: Automatic Download (Recommended)**
+          ```bash
+          python download_models.py chat
+          ```
+          
+          **Option 2: Manual Download**
           1. Download both files:
              - `sub_ai_chat_latest.h5` (model)
              - `chat_vocab.pkl` (vocabulary)
           2. Place in `models/` directory
           3. Run: `python chat_ai.py` or `python sub_ai.py`
           
+          **Option 3: Python API**
           ```python
           from chat_ai import SUBChatAI
           
@@ -128,17 +145,25 @@ jobs:
           ### Dataset Information
           
           **${{ github.event.inputs.dataset }}**:
-          - DailyDialog: Natural daily conversations (13K+ dialogues)
-          - Empathetic Dialogues: Emotion-aware conversations (25K+)
-          - Local: Built-in conversation pairs (130+)
+          - **daily_dialog**: Natural daily conversations (13K+ dialogues)
+          - **empathetic_dialogues**: Emotion-aware conversations (25K+)
+          - **local**: Built-in conversation pairs (130+)
+          
+          See [DATASETS.md](https://github.com/subhobhai943/SUB-ai/blob/main/DATASETS.md) for more info.
           
           ### Files Included
           - `sub_ai_chat_latest.h5` - Trained chat model
           - `chat_vocab.pkl` - Vocabulary and tokenizer
-        files: |
-          models/sub_ai_chat_latest.h5
-          models/sub_ai_chat_*.h5
-          models/chat_vocab.pkl
+          
+          ### Quick Start
+          ```bash
+          # Download this model
+          python download_models.py chat
+          
+          # Start chatting
+          python chat_ai.py
+          ```
+        files: release_files/*
         draft: false
         prerelease: false
       env:
