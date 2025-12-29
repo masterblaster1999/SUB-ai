@@ -1,7 +1,6 @@
 name: Train SUB ai Model
 
 on:
-  # Allow manual trigger from Actions tab
   workflow_dispatch:
     inputs:
       epochs:
@@ -12,17 +11,17 @@ on:
         description: 'Batch size for training'
         required: false
         default: '128'
-  
-  # Optionally trigger on push to main (commented out by default)
-  # push:
-  #   branches: [ main ]
-  #   paths:
-  #     - 'train.py'
-  #     - 'number_detector.py'
+      create_release:
+        description: 'Create GitHub release with trained model'
+        required: false
+        default: 'true'
+        type: boolean
 
 jobs:
   train:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
     - name: Checkout repository
@@ -55,30 +54,62 @@ jobs:
         echo "Generated model files:"
         ls -lh models/
     
+    - name: Get timestamp
+      id: timestamp
+      run: echo "timestamp=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+    
     - name: Upload trained model as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: trained-model-${{ github.run_number }}
+        name: number-detection-model-${{ steps.timestamp.outputs.timestamp }}
         path: |
           models/*.h5
           models/*.png
-        retention-days: 30
+        retention-days: 90
     
-    - name: Upload training summary
-      if: always()
-      uses: actions/upload-artifact@v4
+    - name: Create Release
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      uses: softprops/action-gh-release@v1
       with:
-        name: training-logs-${{ github.run_number }}
-        path: |
-          models/*.png
-        retention-days: 7
-    
-    - name: Commit and push trained model
-      if: success()
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add models/*.h5 models/*.png
-        git diff --staged --quiet || git commit -m "🤖 Auto-train: Update model (run #${{ github.run_number }})"
-        git push
-      continue-on-error: true
+        tag_name: number-model-v${{ steps.timestamp.outputs.timestamp }}
+        name: "Number Detection Model - ${{ steps.timestamp.outputs.timestamp }}"
+        body: |
+          ## 🔢 SUB ai Number Detection Model
+          
+          **Training Date**: ${{ steps.timestamp.outputs.timestamp }}
+          **Dataset**: MNIST (70,000 images)
+          **Training Configuration**:
+          - Epochs: ${{ github.event.inputs.epochs || '15' }}
+          - Batch Size: ${{ github.event.inputs.batch_size || '128' }}
+          
+          ### Model Performance
+          - Expected Accuracy: 98-99%
+          - Model Size: ~1.5 MB
+          - Input: 28x28 grayscale images
+          - Output: Digit classification (0-9)
+          
+          ### How to Use
+          
+          1. Download `sub_ai_model_latest.h5`
+          2. Place in `models/` directory
+          3. Run: `python test_detector.py`
+          
+          ```python
+          from number_detector import NumberDetector
+          
+          detector = NumberDetector('models/sub_ai_model_latest.h5')
+          result = detector.detect('image.png')
+          print(result['message'])
+          ```
+          
+          ### Files Included
+          - `sub_ai_model_latest.h5` - Trained CNN model
+          - `sub_ai_model_training_history.png` - Training visualization
+        files: |
+          models/sub_ai_model_latest.h5
+          models/sub_ai_model_*.h5
+          models/sub_ai_model_training_history.png
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

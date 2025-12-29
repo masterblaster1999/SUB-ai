@@ -19,10 +19,17 @@ on:
         description: 'Maximum number of conversation pairs'
         required: false
         default: '5000'
+      create_release:
+        description: 'Create GitHub release with trained model'
+        required: false
+        default: 'true'
+        type: boolean
 
 jobs:
   train-chat:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
     - name: Checkout repository
@@ -61,21 +68,78 @@ jobs:
         echo "Generated chat model files:"
         ls -lh models/
     
-    - name: Upload trained chat model
+    - name: Get timestamp
+      id: timestamp
+      run: echo "timestamp=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+    
+    - name: Upload trained chat model as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: trained-chat-model-${{ github.run_number }}
+        name: chat-model-${{ github.event.inputs.dataset }}-${{ steps.timestamp.outputs.timestamp }}
         path: |
           models/sub_ai_chat*.h5
           models/chat_vocab.pkl
-        retention-days: 30
+        retention-days: 90
     
-    - name: Commit trained model
-      if: success()
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add models/sub_ai_chat*.h5 models/chat_vocab.pkl
-        git diff --staged --quiet || git commit -m "🤖 Auto-train: Update chat model with ${{ github.event.inputs.dataset || 'daily_dialog' }} (run #${{ github.run_number }})"
-        git push
-      continue-on-error: true
+    - name: Create Release
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: chat-model-v${{ steps.timestamp.outputs.timestamp }}
+        name: "Chat Model (${{ github.event.inputs.dataset }}) - ${{ steps.timestamp.outputs.timestamp }}"
+        body: |
+          ## 💬 SUB ai Chat Model
+          
+          **Training Date**: ${{ steps.timestamp.outputs.timestamp }}
+          **Dataset**: ${{ github.event.inputs.dataset || 'daily_dialog' }}
+          **Training Samples**: ${{ github.event.inputs.max_samples || '5000' }}
+          
+          ### Training Configuration
+          - Epochs: ${{ github.event.inputs.epochs || '100' }}
+          - Batch Size: ${{ github.event.inputs.batch_size || '32' }}
+          - Dataset: ${{ github.event.inputs.dataset || 'daily_dialog' }}
+          - Max Samples: ${{ github.event.inputs.max_samples || '5000' }}
+          
+          ### Model Details
+          - Architecture: Bi-LSTM Seq2Seq
+          - Model Size: ~2 MB
+          - Response Time: <50ms
+          - Training Data: Real conversations from Hugging Face
+          
+          ### How to Use
+          
+          1. Download both files:
+             - `sub_ai_chat_latest.h5` (model)
+             - `chat_vocab.pkl` (vocabulary)
+          2. Place in `models/` directory
+          3. Run: `python chat_ai.py` or `python sub_ai.py`
+          
+          ```python
+          from chat_ai import SUBChatAI
+          
+          chat = SUBChatAI(
+              model_path='models/sub_ai_chat_latest.h5',
+              vocab_path='models/chat_vocab.pkl'
+          )
+          response = chat.chat("Hello!")
+          print(response['response'])
+          ```
+          
+          ### Dataset Information
+          
+          **${{ github.event.inputs.dataset }}**:
+          - DailyDialog: Natural daily conversations (13K+ dialogues)
+          - Empathetic Dialogues: Emotion-aware conversations (25K+)
+          - Local: Built-in conversation pairs (130+)
+          
+          ### Files Included
+          - `sub_ai_chat_latest.h5` - Trained chat model
+          - `chat_vocab.pkl` - Vocabulary and tokenizer
+        files: |
+          models/sub_ai_chat_latest.h5
+          models/sub_ai_chat_*.h5
+          models/chat_vocab.pkl
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
