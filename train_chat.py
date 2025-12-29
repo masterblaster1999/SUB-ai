@@ -29,6 +29,8 @@ class ChatModelTrainer:
         self.embedding_dim = 128
         self.hidden_units = 256
         self.training_data = []
+        self.X_train = None
+        self.y_train = None
         
         os.makedirs('models', exist_ok=True)
         os.makedirs('data', exist_ok=True)
@@ -166,6 +168,10 @@ class ChatModelTrainer:
         print(f"Input shape: {input_sequences.shape}")
         print(f"Target shape: {target_sequences.shape}\n")
         
+        # Store for training
+        self.X_train = input_sequences
+        self.y_train = target_sequences[:, 0]  # Take first token as target (simplified)
+        
         return input_sequences, target_sequences
     
     def build_model(self):
@@ -173,6 +179,9 @@ class ChatModelTrainer:
         Build the sequence-to-sequence chat model.
         """
         print("Building chat model...")
+        
+        if self.tokenizer is None:
+            raise ValueError("Tokenizer not initialized. Call prepare_data() first.")
         
         vocab_size = min(self.vocab_size, len(self.tokenizer.word_index) + 1)
         
@@ -209,13 +218,10 @@ class ChatModelTrainer:
             validation_split (float): Validation data fraction
         """
         if self.model is None:
-            raise ValueError("Model not built")
+            raise ValueError("Model not built. Call build_model() first.")
         
-        # Prepare data
-        X, y = self.prepare_data()
-        
-        # Reshape y for sparse_categorical_crossentropy
-        y = y[:, 0]  # Take first token as target (simplified)
+        if self.X_train is None or self.y_train is None:
+            raise ValueError("Data not prepared. Call prepare_data() first.")
         
         print(f"Starting training for {epochs} epochs...\n")
         
@@ -234,7 +240,7 @@ class ChatModelTrainer:
         ]
         
         history = self.model.fit(
-            X, y,
+            self.X_train, self.y_train,
             batch_size=batch_size,
             epochs=epochs,
             validation_split=validation_split,
@@ -304,7 +310,10 @@ def main():
         # Create training data
         trainer.create_training_data()
         
-        # Build model
+        # Prepare data (creates tokenizer)
+        trainer.prepare_data()
+        
+        # Build model (now tokenizer exists)
         trainer.build_model()
         
         # Train
