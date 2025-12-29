@@ -15,8 +15,9 @@ def create_test_images():
                 0.8, 255, 2)
     cv2.imwrite('test_images/number_5.png', number_img)
     
-    # Create a non-number image (random pattern)
-    non_number_img = np.random.randint(0, 255, (28, 28), dtype=np.uint8)
+    # Create a non-number image (blank)
+    # (Deliberately low-variance so segmentation shouldn't find digit-like contours.)
+    non_number_img = np.zeros((28, 28), dtype=np.uint8)
     cv2.imwrite('test_images/not_number.png', non_number_img)
     
     # Create another number (digit 3)
@@ -24,6 +25,20 @@ def create_test_images():
     cv2.putText(number_img2, '3', (5, 22), cv2.FONT_HERSHEY_SIMPLEX, 
                 0.8, 255, 2)
     cv2.imwrite('test_images/number_3.png', number_img2)
+
+    # Create a multi-digit number image ("123")
+    multi_img = np.zeros((28, 84), dtype=np.uint8)
+    for i, ch in enumerate("123"):
+        cv2.putText(
+            multi_img,
+            ch,
+            (5 + i * 26, 22),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            255,
+            2,
+        )
+    cv2.imwrite('test_images/number_123.png', multi_img)
     
     print("Test images created in 'test_images/' directory\n")
 
@@ -54,6 +69,7 @@ def test_with_model():
     test_files = [
         'test_images/number_5.png',
         'test_images/number_3.png',
+        'test_images/number_123.png',
         'test_images/not_number.png'
     ]
     
@@ -66,6 +82,8 @@ def test_with_model():
             print(f"Message: {result['message']}")
             if result.get('predicted_digit') is not None:
                 print(f"Predicted Digit: {result['predicted_digit']}")
+            if result.get('predicted_number') is not None and result.get('predicted_digit') is None:
+                print(f"Predicted Number: {result['predicted_number']}")
             print(f"Confidence: {result['confidence']:.2%}")
             print(f"Method: {result['method']}")
             print("-" * 60)
@@ -91,6 +109,7 @@ def test_without_model():
     test_files = [
         'test_images/number_5.png',
         'test_images/number_3.png',
+        'test_images/number_123.png',
         'test_images/not_number.png'
     ]
     
@@ -101,6 +120,8 @@ def test_without_model():
             
             print(f"Status: {result['status']}")
             print(f"Message: {result['message']}")
+            if result.get('predicted_number') is not None:
+                print(f"Predicted Number: {result['predicted_number']}")
             print(f"Confidence: {result['confidence']:.2%}")
             print(f"Method: {result['method']}")
             print("-" * 60)
