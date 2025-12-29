@@ -1,0 +1,278 @@
+name: Train Transformer Model & Convert to GGUF
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_model:
+        description: 'Base model to fine-tune'
+        required: true
+        default: 'distilgpt2'
+        type: choice
+        options:
+          - distilgpt2
+          - gpt2
+      dataset:
+        description: 'Training dataset'
+        required: true
+        default: 'daily_dialog'
+        type: choice
+        options:
+          - daily_dialog
+          - local
+      max_samples:
+        description: 'Maximum training samples'
+        required: true
+        default: '5000'
+        type: string
+      epochs:
+        description: 'Training epochs'
+        required: true
+        default: '3'
+        type: string
+      quantization:
+        description: 'GGUF quantization level'
+        required: true
+        default: 'q4_k_m'
+        type: choice
+        options:
+          - f16
+          - q8_0
+          - q5_k_m
+          - q4_k_m
+          - q4_0
+
+jobs:
+  train-and-convert:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: feature/gguf-support
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-gguf-${{ hashFiles('requirements-gguf.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-gguf-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-gguf.txt
+        pip install gguf sentencepiece
+    
+    - name: Train transformer model
+      run: |
+        echo "Training transformer model..."
+        python train_transformer_chat.py \
+          --model ${{ github.event.inputs.base_model }} \
+          --dataset ${{ github.event.inputs.dataset }} \
+          --max-samples ${{ github.event.inputs.max_samples }} \
+          --epochs ${{ github.event.inputs.epochs }} \
+          --batch-size 8 \
+          --output models/transformer_chat
+    
+    - name: Clone llama.cpp
+      run: |
+        echo "Cloning llama.cpp for GGUF conversion..."
+        git clone https://github.com/ggerganov/llama.cpp.git
+        cd llama.cpp
+        make -j$(nproc)
+    
+    - name: Convert to GGUF
+      run: |
+        echo "Converting to GGUF format..."
+        python convert_to_gguf.py \
+          --model models/transformer_chat \
+          --output models/gguf \
+          --quantize ${{ github.event.inputs.quantization }}
+    
+    - name: List generated files
+      run: |
+        echo "Generated GGUF files:"
+        ls -lh models/gguf/
+    
+    - name: Generate model card
+      run: |
+        cat > models/gguf/MODEL_CARD.md << EOF
+        # SUB ai Chat Model (GGUF)
+        
+        **Base Model**: ${{ github.event.inputs.base_model }}
+        **Dataset**: ${{ github.event.inputs.dataset }}
+        **Training Samples**: ${{ github.event.inputs.max_samples }}
+        **Epochs**: ${{ github.event.inputs.epochs }}
+        **Quantization**: ${{ github.event.inputs.quantization }}
+        **Training Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        ## Model Details
+        
+        This is a GGUF-format chat model trained for SUB ai. It can be used with:
+        - llama.cpp
+        - LM Studio
+        - Ollama
+        - llama-cpp-python
+        
+        ## Quick Start
+        
+        ### With llama.cpp
+        
+        \`\`\`bash
+        ./llama-cli -m sub_ai_chat_${{ github.event.inputs.quantization }}.gguf -p "Hello!"
+        \`\`\`
+        
+        ### With Python
+        
+        \`\`\`python
+        from llama_cpp import Llama
+        
+        llm = Llama(model_path="sub_ai_chat_${{ github.event.inputs.quantization }}.gguf")
+        response = llm("Hello!", max_tokens=50)
+        print(response['choices'][0]['text'])
+        \`\`\`
+        
+        ### With LM Studio
+        
+        1. Open LM Studio
+        2. Go to "Models" tab
+        3. Click "Import Model"
+        4. Select this GGUF file
+        5. Start chatting!
+        
+        ## Performance
+        
+        - **Format**: GGUF
+        - **Quantization**: ${{ github.event.inputs.quantization }}
+        - **CPU-friendly**: Yes
+        - **Cross-platform**: Yes
+        
+        ## License
+        
+        MIT License - Same as SUB ai project
+        EOF
+    
+    - name: Create release tag
+      id: create_tag
+      run: |
+        TAG="gguf-model-v$(date +%Y%m%d_%H%M%S)"
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.create_tag.outputs.tag }}
+        name: "GGUF Chat Model - ${{ github.event.inputs.base_model }} (${{ github.event.inputs.quantization }})"
+        body: |
+          ## 🚀 SUB ai GGUF Chat Model
+          
+          **Training Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ### Configuration
+          - **Base Model**: ${{ github.event.inputs.base_model }}
+          - **Dataset**: ${{ github.event.inputs.dataset }}
+          - **Training Samples**: ${{ github.event.inputs.max_samples }}
+          - **Epochs**: ${{ github.event.inputs.epochs }}
+          - **Quantization**: ${{ github.event.inputs.quantization }}
+          
+          ### What is GGUF?
+          
+          GGUF is a highly optimized format for running language models efficiently on CPUs.
+          
+          **Benefits:**
+          - 🚀 3-10x faster inference on CPU
+          - 💾 4-8x smaller file size
+          - 📱 Runs on laptops, desktops, Raspberry Pi
+          - 🔧 Works with many popular tools
+          
+          ### How to Use
+          
+          #### Option 1: llama.cpp (CLI)
+          
+          ```bash
+          # Download llama.cpp
+          git clone https://github.com/ggerganov/llama.cpp.git
+          cd llama.cpp
+          make
+          
+          # Download this model
+          wget <model-url> -O sub_ai_chat.gguf
+          
+          # Chat!
+          ./llama-cli -m sub_ai_chat.gguf -p "Hello!"
+          ```
+          
+          #### Option 2: Python (llama-cpp-python)
+          
+          ```bash
+          pip install llama-cpp-python
+          ```
+          
+          ```python
+          from llama_cpp import Llama
+          
+          llm = Llama(model_path="sub_ai_chat.gguf")
+          output = llm("Hello!", max_tokens=100)
+          print(output['choices'][0]['text'])
+          ```
+          
+          #### Option 3: LM Studio (GUI)
+          
+          1. Download [LM Studio](https://lmstudio.ai/)
+          2. Download this GGUF file
+          3. In LM Studio: "Import Model" → Select the GGUF file
+          4. Start chatting!
+          
+          #### Option 4: Ollama
+          
+          1. Create a `Modelfile`:
+             ```
+             FROM ./sub_ai_chat.gguf
+             ```
+          
+          2. Create model:
+             ```bash
+             ollama create sub-ai -f Modelfile
+             ```
+          
+          3. Run:
+             ```bash
+             ollama run sub-ai
+             ```
+          
+          ### Model Files
+          
+          All generated GGUF files are attached to this release.
+          
+          ### Documentation
+          
+          - [GGUF Format](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md)
+          - [llama.cpp](https://github.com/ggerganov/llama.cpp)
+          - [SUB ai Repository](https://github.com/subhobhai943/SUB-ai)
+          
+          ---
+          
+          **Enjoy fast, local AI chat!** 🎉
+        files: |
+          models/gguf/*.gguf
+          models/gguf/MODEL_CARD.md
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: gguf-models-${{ github.event.inputs.quantization }}
+        path: |
+          models/gguf/*.gguf
+          models/gguf/MODEL_CARD.md
+        retention-days: 30
