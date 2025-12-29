@@ -52,7 +52,7 @@ class GGUFConverter:
         llama_dir = Path("llama.cpp")
         
         if llama_dir.exists():
-            print("✓ llama.cpp already available")
+            print("\u2713 llama.cpp already available")
             return llama_dir
         
         print("Cloning llama.cpp...")
@@ -64,13 +64,33 @@ class GGUFConverter:
                 check=True,
                 capture_output=True
             )
-            print("✓ llama.cpp cloned")
+            print("\u2713 llama.cpp cloned")
             return llama_dir
         except Exception as e:
             print(f"Error cloning llama.cpp: {e}")
             print("\nPlease clone manually:")
             print("git clone https://github.com/ggerganov/llama.cpp.git")
             sys.exit(1)
+    
+    def find_quantize_binary(self, llama_dir):
+        """
+        Find the quantize binary in llama.cpp directory.
+        Checks multiple possible locations.
+        """
+        possible_locations = [
+            llama_dir / "build" / "bin" / "llama-quantize",  # CMake build (Linux)
+            llama_dir / "build" / "bin" / "quantize",        # CMake build (old name)
+            llama_dir / "build" / "bin" / "Release" / "llama-quantize.exe",  # CMake (Windows)
+            llama_dir / "llama-quantize",                     # Root (copied from build)
+            llama_dir / "quantize",                           # Old Makefile build
+        ]
+        
+        for location in possible_locations:
+            if location.exists():
+                print(f"\u2713 Found quantize binary: {location}")
+                return location
+        
+        return None
     
     def convert_to_gguf(self, quantization="f16"):
         """
@@ -112,7 +132,7 @@ class GGUFConverter:
             print(f"Running: {' '.join(cmd)}")
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
             print(result.stdout)
-            print(f"✓ Created: {base_output}")
+            print(f"\u2713 Created: {base_output}")
         except subprocess.CalledProcessError as e:
             print(f"Error: {e}")
             print(e.stderr)
@@ -122,14 +142,14 @@ class GGUFConverter:
         if quantization != "f16":
             print(f"\nStep 2: Quantizing to {quantization.upper()}...")
             
-            quantize_bin = llama_dir / "llama-quantize"
-            if not quantize_bin.exists():
-                quantize_bin = llama_dir / "quantize"
+            quantize_bin = self.find_quantize_binary(llama_dir)
             
-            if not quantize_bin.exists():
+            if not quantize_bin:
                 print("Warning: quantize binary not found")
                 print("Please build llama.cpp first:")
-                print("  cd llama.cpp && make")
+                print("  cd llama.cpp")
+                print("  cmake -B build")
+                print("  cmake --build build --config Release")
                 print(f"\nUsing F16 version: {base_output}")
                 return base_output
             
@@ -146,7 +166,7 @@ class GGUFConverter:
                 print(f"Running: {' '.join(cmd)}")
                 result = subprocess.run(cmd, check=True, capture_output=True, text=True)
                 print(result.stdout)
-                print(f"✓ Created: {quant_output}")
+                print(f"\u2713 Created: {quant_output}")
                 
                 return quant_output
             except subprocess.CalledProcessError as e:
@@ -162,7 +182,7 @@ class GGUFConverter:
         Get information about the converted models.
         """
         print("\n" + "="*60)
-        print("Conversion Complete! 🎉")
+        print("Conversion Complete! \U0001f389")
         print("="*60)
         print("\nGenerated GGUF files:")
         
@@ -172,8 +192,8 @@ class GGUFConverter:
         
         print("\nUsage:")
         print("\n1. With llama.cpp:")
-        print("   cd llama.cpp")
-        print("   ./llama-cli -m ../models/gguf/sub_ai_chat_q4_k_m.gguf -p 'Hello!'")
+        print("   cd llama.cpp/build/bin")
+        print("   ./llama-cli -m ../../../models/gguf/sub_ai_chat_q4_k_m.gguf -p 'Hello!'")
         
         print("\n2. With Python (llama-cpp-python):")
         print("   pip install llama-cpp-python")
