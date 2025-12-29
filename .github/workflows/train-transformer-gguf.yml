@@ -41,6 +41,10 @@ on:
           - q4_k_m
           - q4_0
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   train-and-convert:
     runs-on: ubuntu-latest
