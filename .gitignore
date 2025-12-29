@@ -39,11 +39,14 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Models and data (keep .h5 files for GitHub Actions)
-# models/*.h5  # Uncomment to ignore model files
-models/*.pkl
-data/
-*.ckpt
+# Models and data - Allow .h5 and .pkl for trained models
+# Uncomment to ignore models locally
+# models/*.h5
+# models/*.pkl
+models/*.ckpt
+data/*.csv
+data/*.json
+data/*.txt
 
 # OS
 .DS_Store
@@ -53,5 +56,12 @@ Thumbs.db
 *.log
 
 # Test images (generated)
-test_images/*.png
-test_images/*.jpg
+# Keep test_images/ directory but ignore generated files
+# Uncomment if you want to ignore all test images
+# test_images/*.png
+# test_images/*.jpg
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
