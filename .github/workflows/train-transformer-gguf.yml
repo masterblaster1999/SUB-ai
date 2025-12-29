@@ -79,12 +79,23 @@ jobs:
           --batch-size 8 \
           --output models/transformer_chat
     
-    - name: Clone llama.cpp
+    - name: Clone and build llama.cpp
       run: |
         echo "Cloning llama.cpp for GGUF conversion..."
         git clone https://github.com/ggerganov/llama.cpp.git
         cd llama.cpp
-        make -j$(nproc)
+        
+        echo "Building llama.cpp with CMake..."
+        mkdir build
+        cd build
+        cmake .. -DLLAMA_CUBLAS=OFF
+        cmake --build . --config Release -j$(nproc)
+        
+        # Copy binaries to parent directory for easier access
+        cp bin/* ../ 2>/dev/null || cp *.exe ../ 2>/dev/null || true
+        cd ../..
+        
+        echo "✓ llama.cpp built successfully"
     
     - name: Convert to GGUF
       run: |
@@ -198,13 +209,14 @@ jobs:
           # Download llama.cpp
           git clone https://github.com/ggerganov/llama.cpp.git
           cd llama.cpp
-          make
+          cmake -B build
+          cmake --build build --config Release
           
           # Download this model
           wget <model-url> -O sub_ai_chat.gguf
           
           # Chat!
-          ./llama-cli -m sub_ai_chat.gguf -p "Hello!"
+          ./build/bin/llama-cli -m sub_ai_chat.gguf -p "Hello!"
           ```
           
           #### Option 2: Python (llama-cpp-python)
