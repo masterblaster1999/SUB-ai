@@ -88,7 +88,10 @@ jobs:
         echo "Building llama.cpp with CMake..."
         mkdir build
         cd build
-        cmake .. -DLLAMA_CUBLAS=OFF
+        cmake .. \
+          -DLLAMA_CUBLAS=OFF \
+          -DLLAMA_CURL=OFF \
+          -DBUILD_SHARED_LIBS=OFF
         cmake --build . --config Release -j$(nproc)
         
         # Copy binaries to parent directory for easier access
@@ -209,7 +212,7 @@ jobs:
           # Download llama.cpp
           git clone https://github.com/ggerganov/llama.cpp.git
           cd llama.cpp
-          cmake -B build
+          cmake -B build -DLLAMA_CURL=OFF
           cmake --build build --config Release
           
           # Download this model
