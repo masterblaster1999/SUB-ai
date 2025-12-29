@@ -39,8 +39,8 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Models and data
-models/*.h5
+# Models and data (keep .h5 files for GitHub Actions)
+# models/*.h5  # Uncomment to ignore model files
 models/*.pkl
 data/
 *.ckpt
@@ -51,3 +51,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Test images (generated)
+test_images/*.png
+test_images/*.jpg
