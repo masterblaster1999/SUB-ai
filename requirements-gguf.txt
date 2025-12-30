@@ -1,0 +1,26 @@
+# GGUF Support Dependencies
+# Install with: pip install -r requirements-gguf.txt
+
+# Core transformer dependencies
+torch>=2.0.0
+transformers>=4.30.0
+accelerate>=0.20.0
+
+# GGUF conversion
+gguf>=0.1.0
+sentencepiece>=0.1.99
+
+# Training utilities
+datasets>=2.14.0
+evaluate>=0.4.0
+tqdm>=4.65.0
+
+# Optional: Advanced training features
+# bitsandbytes>=0.41.0  # 8-bit training (requires CUDA)
+# peft>=0.4.0  # LoRA/QLoRA for efficient fine-tuning
+# wandb>=0.15.0  # Experiment tracking
+
+# Keep existing dependencies
+numpy>=1.24.0
+pandas>=2.0.0
+matplotlib>=3.7.0

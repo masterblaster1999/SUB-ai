@@ -67,6 +67,14 @@ jobs:
           models/*.png
         retention-days: 90
     
+    - name: Prepare release files
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      run: |
+        mkdir -p release_files
+        cp models/sub_ai_model_latest.h5 release_files/ || echo "Latest model not found"
+        cp models/sub_ai_model_training_history.png release_files/ || echo "Training history not found"
+        ls -lh release_files/
+    
     - name: Create Release
       if: ${{ github.event.inputs.create_release == 'true' }}
       uses: softprops/action-gh-release@v1
@@ -105,10 +113,12 @@ jobs:
           ### Files Included
           - `sub_ai_model_latest.h5` - Trained CNN model
           - `sub_ai_model_training_history.png` - Training visualization
-        files: |
-          models/sub_ai_model_latest.h5
-          models/sub_ai_model_*.h5
-          models/sub_ai_model_training_history.png
+          
+          ### Download with Script
+          ```bash
+          python download_models.py number
+          ```
+        files: release_files/*
         draft: false
         prerelease: false
       env:
