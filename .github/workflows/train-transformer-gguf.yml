@@ -22,7 +22,7 @@ on:
       max_samples:
         description: 'Maximum training samples'
         required: true
-        default: '10000'
+        default: '7500'
         type: string
       epochs:
         description: 'Training epochs'
